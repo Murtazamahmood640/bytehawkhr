@@ -34,7 +34,7 @@ export default function AppRouter() {
 
   return (
     <Routes>
-      <Route path="/setup" element={!isSetupDone ? <SetupPage /> : <Navigate to="/dashboard" />} />
+      <Route path="/setup" element={<Navigate to="/login" />} />
       <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/dashboard" />} />
 
       <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
@@ -52,7 +52,7 @@ export default function AppRouter() {
         <Route path="/settings/desktop" element={<DesktopSettings />} />
       </Route>
 
-      <Route path="/" element={<Navigate to={isSetupDone ? (user ? '/dashboard' : '/login') : '/setup'} />} />
+      <Route path="/" element={<Navigate to={user ? '/dashboard' : '/login'} />} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
