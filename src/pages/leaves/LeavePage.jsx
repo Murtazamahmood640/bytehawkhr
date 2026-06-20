@@ -206,6 +206,38 @@ export default function LeavePage() {
   /* ── submit ───────────────────────────────────────── */
   const handleSubmit = async e => {
     e.preventDefault();
+
+    // Calculate requested duration
+    const start = dayjs(form.startDate);
+    const end = dayjs(form.endDate);
+    const requestedDays = end.diff(start, 'day') + 1;
+
+    // Check quota if available
+    if (quota) {
+      const remainingForType = quota.remaining[form.type] ?? 0;
+      const totalForType = quota.quota[form.type] ?? 0;
+
+      if (totalForType === 0) {
+        toast((t) => (
+          <div className="flex flex-col gap-2">
+            <span className="font-bold text-red-600 flex items-center gap-1">⚠️ No Leave Quota Assigned</span>
+            <span className="text-xs text-slate-600">You don't have any quota assigned for {form.type} leave. Please contact your manager.</span>
+          </div>
+        ), { duration: 6000, position: 'top-center' });
+        return;
+      }
+
+      if (requestedDays > remainingForType) {
+        toast((t) => (
+          <div className="flex flex-col gap-2">
+            <span className="font-bold text-amber-600 flex items-center gap-1">⚠️ Leave Quota Exceeded</span>
+            <span className="text-xs text-slate-600">You requested <b>{requestedDays} days</b> but only have <b>{remainingForType} days</b> remaining for {form.type} leave.</span>
+          </div>
+        ), { duration: 6000, position: 'top-center' });
+        return;
+      }
+    }
+
     try {
       await api.post('/leaves', form);
       toast.success('Leave request submitted');
