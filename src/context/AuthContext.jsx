@@ -8,12 +8,23 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [isSetupDone, setIsSetupDone] = useState(null);
 
-  // Check setup status on mount
+  // Check setup status and restore session on mount
   useEffect(() => {
-    api.get('/auth/setup-status')
-      .then(r => setIsSetupDone(r.data.isSetupDone))
-      .catch(() => setIsSetupDone(false))
-      .finally(() => setLoading(false));
+    const initAuth = async () => {
+      try {
+        const setupRes = await api.get('/auth/setup-status');
+        setIsSetupDone(setupRes.data.isSetupDone);
+
+        const refreshRes = await api.post('/auth/refresh');
+        window.__accessToken = refreshRes.data.accessToken;
+        setUser(refreshRes.data.user);
+      } catch (err) {
+        // Safe to ignore, user is just not logged in
+      } finally {
+        setLoading(false);
+      }
+    };
+    initAuth();
   }, []);
 
   // Listen for forced logout (401 with failed refresh)

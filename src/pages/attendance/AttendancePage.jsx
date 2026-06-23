@@ -41,6 +41,49 @@ export default function AttendancePage() {
   const [holidayDesc, setHolidayDesc] = useState('');
   const [submittingHoliday, setSubmittingHoliday] = useState(false);
 
+  // Edit attendance form
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingRecord, setEditingRecord] = useState(null);
+  const [editCheckIn, setEditCheckIn] = useState('');
+  const [editCheckOut, setEditCheckOut] = useState('');
+  const [editStatus, setEditStatus] = useState('present');
+  const [editNotes, setEditNotes] = useState('');
+  const [editDate, setEditDate] = useState('');
+  const [submittingEdit, setSubmittingEdit] = useState(false);
+
+  const handleEditClick = (record) => {
+    setEditingRecord(record);
+    setEditCheckIn(record.checkIn ? dayjs(record.checkIn).format('YYYY-MM-DDTHH:mm') : '');
+    setEditCheckOut(record.checkOut ? dayjs(record.checkOut).format('YYYY-MM-DDTHH:mm') : '');
+    setEditStatus(record.status);
+    setEditNotes(record.notes || '');
+    setEditDate(dayjs(record.date).format('YYYY-MM-DD'));
+    setShowEditModal(true);
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editDate) return toast.error('Date is required');
+    try {
+      setSubmittingEdit(true);
+      await api.put(`/attendance/logs/${editingRecord._id}`, {
+        date: editDate,
+        checkIn: editCheckIn || null,
+        checkOut: editCheckOut || null,
+        status: editStatus,
+        notes: editNotes
+      });
+      toast.success('Attendance record updated successfully');
+      setShowEditModal(false);
+      setEditingRecord(null);
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update record');
+    } finally {
+      setSubmittingEdit(false);
+    }
+  };
+
   const fetchEmployees = async () => {
     if (!isManagerPlus) return;
     try {
@@ -273,7 +316,7 @@ export default function AttendancePage() {
                   <Download size={14} /> Export to Excel
                 </Button>
               </div>
-              <AttendanceTable records={records} />
+              <AttendanceTable records={records} isManagerPlus={isManagerPlus} onEdit={handleEditClick} />
             </div>
           ) : (
             /* Premium Monthly Calendar Grid */
@@ -441,6 +484,91 @@ export default function AttendancePage() {
             </table>
           </div>
         </div>
+      </Modal>
+
+      {/* Edit Attendance Record Modal */}
+      <Modal open={showEditModal} onClose={() => { setShowEditModal(false); setEditingRecord(null); }} title="Update Attendance Log" size="md">
+        <form onSubmit={handleEditSubmit} className="space-y-4">
+          <div className="form-group">
+            <label className="label">Employee</label>
+            <input
+              type="text"
+              className="input bg-slate-50 cursor-not-allowed"
+              value={editingRecord?.employee?.name || ''}
+              disabled
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="form-group">
+              <label className="label">Date *</label>
+              <input
+                type="date"
+                className="input"
+                value={editDate}
+                onChange={e => setEditDate(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="label">Status *</label>
+              <select
+                className="input"
+                value={editStatus}
+                onChange={e => setEditStatus(e.target.value)}
+                required
+              >
+                <option value="present">Present</option>
+                <option value="half-day">Half Day</option>
+                <option value="absent">Absent</option>
+                <option value="late">Late</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="form-group">
+              <label className="label">Check In Time</label>
+              <input
+                type="datetime-local"
+                className="input"
+                value={editCheckIn}
+                onChange={e => setEditCheckIn(e.target.value)}
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="label">Check Out Time</label>
+              <input
+                type="datetime-local"
+                className="input"
+                value={editCheckOut}
+                onChange={e => setEditCheckOut(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="label">Notes / Discrepancy details</label>
+            <textarea
+              className="input resize-none"
+              rows={3}
+              placeholder="e.g. Forgot to checkout, updated manually by admin..."
+              value={editNotes}
+              onChange={e => setEditNotes(e.target.value)}
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 border-t pt-4">
+            <Button type="button" variant="secondary" onClick={() => { setShowEditModal(false); setEditingRecord(null); }}>
+              Cancel
+            </Button>
+            <Button type="submit" loading={submittingEdit}>
+              Save Changes
+            </Button>
+          </div>
+        </form>
       </Modal>
     </div>
   );

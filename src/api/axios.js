@@ -20,7 +20,7 @@ api.interceptors.response.use(
   (res) => res,
   async (err) => {
     const orig = err.config;
-    if (err.response?.status === 401 && !orig._retry) {
+    if (err.response?.status === 401 && !orig._retry && !orig.url?.includes('/auth/refresh')) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => queue.push({ resolve, reject }))
           .then(token => { orig.headers.Authorization = `Bearer ${token}`; return api(orig); });
